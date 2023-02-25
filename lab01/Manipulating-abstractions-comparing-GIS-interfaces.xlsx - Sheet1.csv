@@ -1,0 +1,79 @@
+,Instruction Sets,,,,
+How to…,ArcPro GUI,ArcPy,Fiona/Shapely,PostGIS,
+Create a feature class,Catalog > right click database > New > Feature Class > INSERT DETAILS,"arcpy.CreateFeatureclass_management(out_path, out_name)
+OR
+arcpy.MakeFeatureLayer_management(path_to_Shapefile, 'Layer_Name')",with fiona.open('filename.shp'),"CREATE TABLE sensitive_areas (
+ area_id integer,
+ name varchar(128), 
+ area_size float,
+ type varchar(10),
+ zone sde.st_geometry
+);
+
+Documentation",Mastering PostGIS
+Add points to a feature class,"Be sure Feature Class was created as a a Feature Class ""Point"" Type > ... ","Use arcpy.InsertCursor(in_table, field_names) for a point feature class","#define the object in a standard format, like geojson below
+eiffel_tower =  {
+...   'geometry': {
+...     'type': 'Point',
+...     'coordinates': (448252, 5411935)
+...   },
+...   'properties': OrderedDict([
+...     ('name', 'Eiffel Tower'),
+...     ('height', 300.01),
+...     ('view', 'scenic'),
+...     ('year', 1889)
+...   ])
+... }
+#Need to set your driver, crs and schema
+driver = ""GeoJson"" # or ""ESRI Shapefile""
+from fiona.crs import from_epsg
+crs = from_epsg(25831) #webmercator, set this to your epsg
+ 
+#then openthe file with fiona and write it
+
+>>> with fiona.open(
+...         '/tmp/foo.geojson',
+...         'w',
+...         driver=output_driver,
+...         crs=landmarks_crs,
+...         schema=landmarks_schema) as c:
+...     c.write(eiffel_tower)
+
+
+schema = {'geometry' : { 'type': 'Point',...}} with fiona.open('filename.shp', schema = schema) as file:","CREATE TABLE geometries (name varchar, geom geometry); INSERT INTO geometries VALUES ('Point', 'POINT (0 0) Documentation",
+Add line to a feature class,"Be sure Feature Class was created as a a Feature Class ""Line"" Type > ... ","Use arcpy.InsertCursor(in_table, field_names) for a line feature class","schema = {'geometry' : { 'type': 'Line',...}} with fiona.open('filename.shp', schema = schema) as file:","CREATE TABLE geometries (name varchar, geom geometry); INSERT INTO geometries VALUES ('Linestring', 'LINESTRING(0 0, 1 1, 2 1, 2 2)') Documentation",Populate feature class via SQL: https://community.esri.com/t5/geoprocessing-questions/populate-feature-class-via-sql/td-p/527672
+Add polygons to a feature class,"Be sure Feature Class was created as a a Feature Class ""Polygon"" Type > ... ","Use arcpy.InsertCursor(in_table, field_names) for a polygon feature class","schema = {'geometry' : { 'type': 'Polygon',...}} with fiona.open('filename.shp', schema = schema) as file:","CREATE TABLE geometries (name varchar, geom geometry); INSERT INTO geometries VALUES ('Polygon', 'POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))') Documentation",
+View each row in an attribute table for a feature class,In contents > right click layer > click attribute table,"with arcpy.da.SearchCursor(in_table, field_names) as cursor: for row in cursor: print(row)","c = fiona.open(""filename.shp"",""r"")
+val = c[0]
+for item in c:    
+    pprint.pprint(val)","Open Browser Window > Right Click Table, Table now visible",
+View each geometry object in a feature class,In map pane > pan and zoom,"for row in arcpy.da.SearchCursor(parameter, [OID, SHAPE]): for feature in row[]:","Use the Points(), Linestrings(), and Polygons() shapely functions to display features of interest from input coordinates","Open Browser Window > Right Click Table > View/Edit Data > Select All Rows, Scroll to geometry in table, and click the 'eye' to open geometry viewer Documentation",
+Summarize the contents of a feature class,"In attribute table, view headings",arcpy.ListFields(dataset),"with fiona.open('filepath.shp', 'r') as c:
+     print(c.schema) ","Open Browser Window > Right Click Table, scroll through to view headings",
+Export to shapefile,In contents pane > right click layer > data > export features > choose folder location > name it <name>.shp,"arcpy.conversion.ExportFeatures(in_features, ""out_features.shp"")","with fiona.open('newfilename.shp', 'w') as c:
+     driver, crs, and schema
+     print(""success"")
+
+# this example from stackexchange
+from shapely.geometry import mapping, Polygon
+import fiona
+
+# Here's an example Shapely geometry
+poly = Polygon([(0, 0), (0, 1), (1, 1), (0, 0)])
+
+# Define a polygon feature geometry with one attribute
+schema = {
+    'geometry': 'Polygon',
+    'properties': {'id': 'int'},
+}
+
+# Write a new Shapefile
+with fiona.open('my_shp2.shp', 'w', 'ESRI Shapefile', schema) as c:
+    ## If there are multiple geometries, put the ""for"" loop here
+    c.write({
+        'geometry': mapping(poly),
+        'properties': {'id': 123},
+    })","Install ogr2ogr package, use the following command: ogr2ogr -f ""PostgreSQL"" PG:""host=localhost port=5432 dbname=osm user=postgres password=password"" filename.shp -overwrite -progress --config PG_USE_COPY YES Documentation",
+Export to geodatabase,In contents pane > right click geodatabase > data > export > choose feature classes/table to geodatabase > specify input features>run,"arcpy.conversion.FeatureClassToGeodatabase(Input_Features, Output_Geodatabase)","with fiona.open('newfilename.gdb', 'w') as c:
+     driver, crs, and schema
+     print(""success"")","Install ogr2ogr package, use the following command: ogr2ogr -f ""PostgreSQL"" PG:""host=localhost port=5432 dbname=osm user=postgres password=password"" filename.gdb -overwrite -progress --config PG_USE_COPY YES Documentation",
